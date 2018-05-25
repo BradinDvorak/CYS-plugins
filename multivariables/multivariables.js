@@ -107,7 +107,7 @@ MultiVariable.prototype.dictionary = {
         "NAME_INTERNATIONAL": /^[-']|[^-'a-zA-ZÀ-ÖØ-öø-ÿ]/
     },
     TRANSFORM: {
-        "LOWER": function(string) {
+        "LOWERCASE": function(string) {
             return string.toLowerCase();
         },
         "NAME": function(string) {
@@ -115,7 +115,7 @@ MultiVariable.prototype.dictionary = {
                 return $1 + $2.toUpperCase();
             });
         },
-        "UPPER": function(string) {
+        "UPPERCASE": function(string) {
             return string.toUpperCase();
         }
     }
