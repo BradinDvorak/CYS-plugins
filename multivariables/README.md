@@ -74,7 +74,7 @@ Returns an array of all of the `MultiVariable` object's instances.
 
 ## Example
 
-This example provides a simple storygame
+This example provides an implementation of a simple naming system in a storygame.
 
 ### Global Page Script
 
