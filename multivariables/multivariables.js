@@ -22,7 +22,10 @@ MultiVariable = function() {
 
                 if (input) {
                     input.maxLength = instance.length;
-                    input.value = instance.default;
+
+                    if (Array.isArray(instance.default)) input.placeholder = instance.default[Math.floor(Math.random() * instance.default.length)]
+                    else if (typeof instance.default === "function") input.placeholder = instance.default(instance.length);
+
                     input.addEventListener("input", function() {
                         var obj = {},
                             val = this.value;
@@ -44,7 +47,9 @@ MultiVariable = function() {
 MultiVariableInstance = function(object, factory) {
     this.factory = factory;
 
-    this.default = typeof object.default === "string" ? object.default : null;
+    this.default = null;
+    if (Array.isArray(object.default) || typeof object.default === "function") this.default = object.default;
+    else if (typeof object.default === "string") this.default = [object.default];
 
     this.filter = null;
     if (object.filter) {
