@@ -31,15 +31,15 @@ Adds an instance with the supplied options to the `MultiVariable` object and the
 | parameter           | type                                       | default          | description                                                                                                                                     |
 |---------------------|--------------------------------------------|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
 | options             | Object                                     | *none*           |                                                                                                                                                 |
-| options.default     | array (of strings), string, or function    | `null`           | Placeholder value for the input element, either chosen from the strings provided or generated via the function (the max length is its argument) |
+| options.default     | array (of strings), string, or Function    | `null`           | Placeholder value for the input element, either chosen from the strings provided or generated via the function (the max length is its argument) |
 | options.filter      | RegExp or [Filter preset](#filter)         | `null`           | Filters the matched characters out of the input element                                                                                         |
 | options.input       | string                                     | `null`           | Id for the input element                                                                                                                        |
 | options.length      | number                                     | `8`              | Max length of the input element                                                                                                                 |
 | options.prefix      | string                                     | `MULTIVARIABLE#` | The string prefixed to this instance's CYS variables                                                                                            |
 | options.replace     | RegExp or string                           | `null`           | Replaces the matched characters with the instance's value                                                                                       |
 | options.transform   | Function or [Transform preset](#transform) | `null`           | Arbitrary operation performed on the input element's value. Takes one argument (string) and should return a string                              |
-| options.serialize   | Function                                   | `null`           | Custom function that converts its one, single-character argument into a 32-bit integer. An `options.deserialize` must also be defined           |
-| options.deserialize | Function                                   | `null`           | Custom function that converts its one, 32-bit integer argument into a single character. An `options.serialize` must also be defined             |
+| options.serialize   | Function or [Serialize preset](#serialize) | `null`           | Custom function that converts its one, single-character argument into a 32-bit integer. An `options.deserialize` must also be defined           |
+| options.deserialize | Function or [Serialize preset](#serialize) | `null`           | Custom function that converts its one, 32-bit integer argument into a single character. An `options.serialize` must also be defined             |
 
 #### `.create(options)`
 
@@ -71,6 +71,14 @@ Returns an array of all of the `MultiVariable` object's instances.
 | `LOWERCASE` | Makes all letters lowercase                                                                                  |
 | `NAME`      | Capitalizes the initial letter, as well as any letters following a dash, and makes everything else lowercase |
 | `UPPERCASE` | Makes all letters uppercase                                                                                  |
+
+#### Serialize
+
+| value      | description                                                                       |
+|------------|-----------------------------------------------------------------------------------|
+| `UNICODE`  | Serializes the character as its UTF-16 codepoint (0–65535)                        |
+| `ALPHABET` | Serializes the character as its position in the alphabet (1–26) or zero otherwise |
+| `DIGIT`    | Serializes the character as its integer value (0–9) or -1 otherwise uppercase     |
 
 ## The `MultiVariableInstance` Object
 

@@ -17,7 +17,13 @@ MultiVariable = function() {
 
                 for (var n = 0; n < instance.length; n++) {
                     var code = ssVariables[instance.prefix + n];
-                    if (code) instance.value += instance.deserialize ? instance.deserialize(code) : String.fromCharCode(code);
+                    code = instance.deserialize ? instance.deserialize(code) : String.fromCharCode(code);
+                    if (code) {
+                        if (typeof code === "string") {
+                            if (code.length === 1) instance.value += code;
+                            else throw "Deserialize function must return a string of length 1.";
+                        } else throw "Deserialize function must return a string if truthy.";
+                    }
                 }
 
                 if (input) {
@@ -77,11 +83,17 @@ MultiVariableInstance = function(object, factory) {
 
     this.value = "";
 
+
+    this.deserialize = this.serialize = null;
     if (typeof object.deserialize === "function" && typeof object.serialize === "function") {
         this.deserialize = object.deserialize;
         this.serialize = object.serialize;
-    } else {
-        this.deserialize = this.serialize = null;
+    } else if (typeof object.serialize === "string" && object.serialize in this.factory.dictionary.SERIALIZE) {
+        this.serialize = this.factory.dictionary.SERIALIZE[object.serialize][0];
+        this.deserialize = this.factory.dictionary.SERIALIZE[object.serialize][1];
+    } else if (typeof object.deserialize === "string" && object.deserialize in this.factory.dictionary.SERIALIZE) {
+        this.serialize = this.factory.dictionary.SERIALIZE[object.deserialize][0];
+        this.deserialize = this.factory.dictionary.SERIALIZE[object.deserialize][1];
     }
 }
 
@@ -110,6 +122,32 @@ MultiVariable.prototype.dictionary = {
         "NATURAL": /[^\d]/,
         "NAME": /^[-']|[^-'a-zA-Z]/,
         "NAME_INTERNATIONAL": /^[-']|[^-'a-zA-ZÀ-ÖØ-öø-ÿ]/
+    },
+    SERIALIZE: {
+        "UNICODE": [
+            function(string) {
+                return string.charCodeAt();
+            },
+            function(integer) {
+                return String.fromCharCode(integer);
+            }
+        ],
+        "ALPHABET": [
+            function(string) {
+                return string ? "ABCDEFGHIJKLMNOPQRSTUVWXYZ".indexOf(string.toUpperCase()) + 1 : 0;
+            },
+            function(integer) {
+                return integer ? "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")[integer - 1] : "";
+            }
+        ],
+        "DIGIT": [
+            function(string) {
+                return parseInt(string) || -1;
+            },
+            function(integer) {
+                return integer === -1 ? "" : "" + integer;
+            }
+        ]
     },
     TRANSFORM: {
         "LOWERCASE": function(string) {
