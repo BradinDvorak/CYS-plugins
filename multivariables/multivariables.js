@@ -10,21 +10,14 @@ MultiVariable = function() {
         for (var i = 0; i < this.instances.length; i++) {
             (function() {
                 var instance = this.instances[i],
-                    globalFilter = instance.filter instanceof RegExp ? new RegExp(instance.filter.source, instance.filter.flags.replace(/g|^/i, "g")) : null,
-                    globalReplace = instance.replace instanceof RegExp ? new RegExp(instance.replace.source, instance.replace.flags.replace(/g|^/i, "g")) : null,
                     input = document.querySelector("input#" + instance.input),
-                    pagetextNodes = getNodeContent(".dark1border + div > div");
+                    serial = [];
 
                 for (var n = 0; n < instance.length; n++) {
-                    var code = ssVariables[instance.prefix + n];
-                    code = instance.deserialize ? instance.deserialize(code) : String.fromCharCode(code);
-                    if (code) {
-                        if (typeof code === "string") {
-                            if (code.length === 1) instance.value += code;
-                            else throw "Deserialize function must return a string of length 1.";
-                        } else throw "Deserialize function must return a string if truthy.";
-                    }
+                    serial.push(ssVariables[instance.prefix + n]);
                 }
+
+                instance.value = instance._deserialize(serial);
 
                 if (input) {
                     input.maxLength = instance.length;
@@ -34,17 +27,33 @@ MultiVariable = function() {
 
                     input.addEventListener("input", function() {
                         var obj = {},
-                            val = this.value;
-                        if (globalFilter) this.value = val = val.replace(globalFilter, "");
-                        if (instance.transform) this.value = val = instance.transform(val);
+                            val = instance._serialize(this.value);
+
                         for (var i = 0; i < instance.length; i++) {
-                            obj[instance.prefix + i] = instance.serialize ? instance.serialize(val.substr(i, 1)) : val.charCodeAt(i) || 0;
+                            obj[instance.prefix + i] = val[i];
                         }
                         updateVariables(obj);
                     });
                 }
 
-                if (instance.replace) replaceTextNode(pagetextNodes, globalReplace, instance.value);
+                if (instance.replace)
+                    for (var k = 0; k < instance.replace.length; k++) {
+                        var replacer = instance.replace[k],
+                            replaceRegex,
+                            replaceTransform,
+                            globalReplace,
+                            val = instance.value;
+
+                        if (Array.isArray(replacer)) {
+                            replaceRegex = globalizeRegex(replacer[0]);
+                            replaceTransform = replacer[1];
+                            if (typeof replaceTransform === "number") val = val.substr(replaceTransform, 1);
+                            else if (Array.isArray(replaceTransform) && typeof replaceTransform[0] === "number" && typeof replaceTransform[1] === "number") val = val.substr(replaceTransform[0], replaceTransform[1]);
+                            else if (typeof replaceTransform === "function") val = replaceTransform(val);
+                        } else replaceRegex = globalizeRegex(replacer);
+
+                        replaceTextNode(getNodeContent(".dark1border + div > div"), replaceRegex, val);
+                    }
             }).bind(this)()
         }
     }.bind(this));
@@ -69,10 +78,27 @@ MultiVariableInstance = function(object, factory) {
 
     this.prefix = typeof object.prefix === "string" && /^[A-Z]/i.test(object.prefix) ? object.prefix.toUpperCase() : "MULTIVARIABLE" + this.factory.instances.length;
 
-    this.replace = null;
+    this.replace = [];
     if (object.replace) {
-        if (object.replace instanceof RegExp) this.replace = object.replace;
-        else if (typeof object.replace === "string") this.replace = new RegExp(object.replace.replace(/[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"));
+        if (!Array.isArray(object.replace)) object.replace = [object.replace];
+        for (var i = 0; i < object.replace.length; i++) {
+            var e = object.replace[i],
+                replaceA,
+                replaceB;
+
+            if (Array.isArray(e) && e.length > 1) replaceA = e[0], replaceB = e[1];
+            else replaceA = e;
+
+            if (typeof replaceA === "string") replaceA = new RegExp(replaceA.replace(/[-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"));
+            else if (!(replaceA instanceof RegExp)) replaceA = null;
+
+            // More type checking here
+
+            if (replaceA != null) {
+                if (replaceB != null) this.replace.push([replaceA, replaceB]);
+                else this.replace.push(replaceA);
+            }
+        }
     }
 
     this.transform = null;
@@ -103,12 +129,17 @@ MultiVariable.prototype.add = function(object) { // returns MultiVariable
     return this;
 }
 
-MultiVariable.prototype.create = function(object) { // returns index
+MultiVariable.prototype.create = function(object) { // returns MultiVariableInstance
     var construct = new MultiVariableInstance(object, this);
-    return this.instances.push(construct);
+    this.instances.push(construct);
+    return this.instances[this.instances.length - 1];
 }
 
-MultiVariable.prototype.entries = function() {
+MultiVariable.prototype.entries = function(begin, end) {
+    if (begin != null) {
+        if (end != null) return this.instances.slice(begin, end);
+        return this.instances.slice(begin);
+    }
     return this.instances;
 }
 
@@ -164,11 +195,64 @@ MultiVariable.prototype.dictionary = {
     }
 };
 
+MultiVariableInstance.prototype._serialize = function(string) {
+    if (typeof string !== "string") throw "Input must be a string";
+
+    var serial = [],
+        globalFilter = globalizeRegex(this.filter);
+
+    if (globalFilter) string = string.replace(globalFilter, "");
+    if (this.transform) string = this.transform(string);
+    for (var i = 0; i < this.length; i++) {
+        var number = Number(this.serialize ? this.serialize(string.substr(i, 1)) : string.charCodeAt(i) || 0);
+        if (Number.isNaN(number)) throw "Serialization result must be a number.";
+        if (2147483647 < number || number < -2147483648) throw "Serialization result is outside the 32-bit limit."
+        serial.push(number);
+    }
+
+    return serial;
+}
+
+
+MultiVariableInstance.prototype._deserialize = function(serial) {
+    if (!Array.isArray(serial)) throw "Input must be an array";
+
+    var string = "";
+
+    for (var i = 0; i < serial.length; i++) {
+        var code = serial[i];
+        code = this.deserialize ? this.deserialize(code) : String.fromCharCode(code);
+        if (code) {
+            if (typeof code === "string") {
+                if (code.length === 1) string += code;
+                else throw "Deserialize function must return a string of length 1.";
+            } else throw "Deserialize function must return a string if truthy.";
+        }
+    }
+    return string;
+}
+
+MultiVariableInstance.prototype.conditionalize = function(string) {
+    string = string || "";
+
+    return this._serialize(string).map(function(a, i) {
+        return "%" + this.prefix + i + " = " + a;
+    }.bind(this)).join(" AND ");
+}
+
 // Polyfills
-/*
+
 "function"!=typeof Object.assign&&Object.defineProperty(Object,"assign",{value:function(t,e){"use strict";if(null==t)throw new TypeError("Cannot convert undefined or null to object");for(var r=Object(t),n=1;n<arguments.length;n++){var o=arguments[n];if(null!=o)for(var c in o)Object.prototype.hasOwnProperty.call(o,c)&&(r[c]=o[c])}return r},writable:!0,configurable:!0}),Object.keys||(Object.keys=function(){"use strict";var t=Object.prototype.hasOwnProperty,e=!{toString:null}.propertyIsEnumerable("toString"),r=["toString","toLocaleString","valueOf","hasOwnProperty","isPrototypeOf","propertyIsEnumerable","constructor"],n=r.length;return function(o){if("function"!=typeof o&&("object"!=typeof o||null===o))throw new TypeError("Object.keys called on non-object");var c,i,l=[];for(c in o)t.call(o,c)&&l.push(c);if(e)for(i=0;i<n;i++)t.call(o,r[i])&&l.push(r[i]);return l}}()),Object.entries||(Object.entries=function(t){for(var e=Object.keys(t),r=e.length,n=new Array(r);r--;)n[r]=[e[r],t[e[r]]];return n}),void 0===RegExp.prototype.flags&&Object.defineProperty(RegExp.prototype,"flags",{configurable:!0,get:function(){return this.toString().match(/[gimuy]*$/)[0]}});
-*/
+
 // Functions
+
+globalizeRegex = function(regex) {
+    return regex instanceof RegExp ? new RegExp(regex.source, regex.flags.replace(/g|^/i, "g")) : null
+}
+
+unglobalizeRegex = function(regex) {
+    return regex instanceof RegExp ? new RegExp(regex.source, regex.flags.replace(/g/i, "")) : null
+}
 
 getNodeContent = function(selector) {
     return [].slice.call(document.querySelectorAll(selector + ", " + selector + " *")).reduce(function(a, e) {
@@ -178,7 +262,7 @@ getNodeContent = function(selector) {
 
 replaceTextNode = function(nodeList, match, replace) {
     var nodes = nodeList.filter(function(e) {
-        return (e.nodeType == 3 && e.nodeValue.trim() && match.test(e.data))
+        return (e.nodeType == 3 && e.nodeValue.trim() && unglobalizeRegex(match).test(e.data))
     });
     for (var i = 0; i < nodes.length; i++) {
         var div = document.createElement("div"),
