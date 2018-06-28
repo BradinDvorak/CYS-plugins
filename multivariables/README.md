@@ -26,7 +26,7 @@ var multiVariableInstance = MultiVariable.create(options);
 
 #### `.add(options)`
 
-Adds an instance with the supplied options to the `MultiVariable` object and then returns the `MultiVariable` object. Because of this, multiple `add()`s can be chained together.
+Adds an instance with the supplied options to the `MultiVariable` object and then returns the `MultiVariable` object. Because of this, multiple `.add()`s can be chained together.
 
 | parameter           | type                                       | default          | description                                                                                                                                     |
 |---------------------|--------------------------------------------|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -36,22 +36,22 @@ Adds an instance with the supplied options to the `MultiVariable` object and the
 | options.input       | string                                     | `null`           | Id for the input element                                                                                                                        |
 | options.length      | number                                     | `8`              | Max length of the input element                                                                                                                 |
 | options.prefix      | string                                     | `MULTIVARIABLE#` | The string prefixed to this instance's CYS variables                                                                                            |
-| options.replace     | RegExp or string                           | `null`           | Replaces the matched characters with the instance's value                                                                                       |
+| options.replace     | RegExp, string, or array                   | `null`           | Replaces the matched characters with the instance's value. Optionally, a function or substring indices can be provided                          |
 | options.transform   | Function or [Transform preset](#transform) | `null`           | Arbitrary operation performed on the input element's value. Takes one argument (string) and should return a string                              |
 | options.serialize   | Function or [Serialize preset](#serialize) | `null`           | Custom function that converts its one, single-character argument into a 32-bit integer. An `options.deserialize` must also be defined           |
 | options.deserialize | Function or [Serialize preset](#serialize) | `null`           | Custom function that converts its one, 32-bit integer argument into a single character. An `options.serialize` must also be defined             |
 
 #### `.create(options)`
 
-Same as the `add()` method, but returns the instance instead of the `MultiVariable` object. This means that multiple `create()`s cannot be chained together.
+Same as the `.add()` method, but returns the instance instead of the `MultiVariable` object. This means that although they provide immediate access to the instance, multiple `.create()`s cannot be chained together.
 
 #### `.get(index)`
 
 Returns the instance at the provided index.
 
-#### `.entries()`
+#### `.entries([begin, [end]])`
 
-Returns an array of all of the `MultiVariable` object's instances.
+Returns an array of all (or a subset) of the `MultiVariable` object's instances.
 
 ### Presets
 
@@ -84,6 +84,20 @@ Returns an array of all of the `MultiVariable` object's instances.
 
 An instance within a `MultiVariable` object.
 
+### Prototype Methods
+
+#### `._serialize(string)`
+
+The instance's internal serialization function, turning a string of characters into an array of 32-bit integers.
+
+#### `._deserialize(array)`
+
+The instance's internal serialization function, turning an array of 32-bit integers into a string of characters.
+
+#### `.conditionalize(string)`
+
+Returns a CYS Script string that tests for the serialization of a given string. For instance `%MULTIVARIABLE0 = 72 AND %MULTIVARIABLE1 = 105` would be provided for a UTF-16 serialization of the string `"Hi"`.
+
 ### Methods
 
 #### `.default(length)`
@@ -105,6 +119,18 @@ The `.serialize()` method is run on each character of the input element, convert
 The `.deserialize()` method is run on each CYS variable within the current instance, converting it back into a string. The method takes one argument—a 32-bit integer—and should return a single-character string.
 
 *Note: If a custom `.deserialize()` method is defined, a custom `.serialize()` must also be defined or both methods will default to `null`.*
+
+### Properties
+
+#### `.replace`
+
+The `.replace` property must always be an array (if not `null`) and will be turned into one when the instance is created if the `replace` option is provided as a string or RegExp.
+
+Any value within the array should be either an instance of RegExp or an array itself. If an array, it must be of length `2`, containing a RegExp as its index `0` and one of the following as its index `1`:
+
+- A single number, providing an index for a one-character substring operation (the equivalent of `string.substr(a, 1)`)
+- An array containing two numbers, providing the beginning and end indices for a substring operation (the equivalent of `string.substr(a, b)`)
+- A function, taking a string as its argument (the value of the `MultiVariableInstance`) and returning a string
 
 ## Example
 
@@ -143,7 +169,7 @@ This page is where the user is prompted to type in their name. It contains an `<
 
 ### Page 1 Link Script
 
-The "accept"/"continue" link that leads to Page 2. This script ensures that the player cannot enter an empty name by returning to Page 1 if the first `%NAME` variable is zero.
+The "accept"/"continue" link that leads to Page 2. This script ensures that the player cannot enter an empty name by returning to Page 1 if the first `%NAME` variable (`%NAME0`, because indexing begins at zero) equals zero.
 
 ```Go
 IF %NAME0 = 0 THEN $DEST := @NONE
