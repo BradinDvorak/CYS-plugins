@@ -4,7 +4,13 @@ Multi-Variables provides a method of piecemeal storing strings of data in CYS's 
 
 ## Usage
 
-To begin, create a new `MultiVariable` object.
+First, you must load the multivariable script in your storygame's global page script. It's possible to simply copy and paste the contents of the JS file, but it may be cleaner and faster to use a CDN. Examples in this readme use a development URL from [rawgit.com](https://rawgit.com), but in your storygame you should either use your own hosting, or visit [rawgit](https://rawgit.com), enter `https://github.com/BradinDvorak/CYS-plugins/blob/master/multivariables/multivariables.min.js` into the text field, and copy the *production* URL, which is unique for every release.
+
+```HTML
+<script src='https://rawgit.com/BradinDvorak/CYS-plugins/master/multivariables/multivariables.min.js'></script>
+```
+
+To get started with multi-variables, create a new `MultiVariable` object.
 
 ```JavaScript
 var multiVariable = new MultiVariable();
@@ -143,7 +149,7 @@ First, the multivariable script is loaded. Then a `MultiVariable` object is crea
 This `MultiVariable` instance can be at maximum 12 letters long, accepts only name characters, assigns its values to variables prefixed with `%NAME`, and is captured by the `<input>` element with the id "playerName". On-page, it replaces any instance of `$$NAME$$`.
 
 ```HTML
-$PAGETEXT := "<script src='https://cdn.rawgit.com/BradinDvorak/CYS-plugins/f15d6269/multivariables/multivariables.min.js'></script>
+$PAGETEXT := "<script src='https://rawgit.com/BradinDvorak/CYS-plugins/master/multivariables/multivariables.min.js'></script>
 <script>
 var multiVariable = new MultiVariable();
 
