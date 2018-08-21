@@ -147,6 +147,14 @@ MultiVariable.prototype.get = function(i) {
     return this.instances[i];
 }
 
+MultiVariable.prototype.first = function() {
+    return this.instances[0];
+}
+
+MultiVariable.prototype.last = function() {
+    return this.instances[this.instances.length-1];
+}
+
 MultiVariable.prototype.dictionary = {
     FILTER: {
         "INTEGER": /(?!^-|[\d])./,

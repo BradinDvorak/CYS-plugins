@@ -49,6 +49,14 @@ Same as the `.add()` method, but returns the instance instead of the `MultiVaria
 
 Returns the instance at the provided index.
 
+#### `.first()`
+
+Returns the first instance of the `MultiVariable` object.
+
+#### `.last()`
+
+Returns the final instance of the `MultiVariable` object.
+
 #### `.entries([begin, [end]])`
 
 Returns an array of all (or a subset) of the `MultiVariable` object's instances.
