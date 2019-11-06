@@ -147,7 +147,7 @@ LongVariableInstance.prototype.DOMContentLoaded = function() {
     if (valEncoded) {
         this.value = this.decode(valEncoded[1]);
         if (this.input) {
-            input.value = this.value;
+            this.input.value = this.value;
         }
         if (this.output) {
             for (i = 0; i < this.output.length; i++) {
